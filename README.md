@@ -1,6 +1,7 @@
 # get_eia_demand_data
 Tools for using EIA's (U.S. Energy Information Administration) API to query demand data and formatting it for SEM use.
 
+This code was written using `python3.6`.
 
 # Getting and EIA API key
 

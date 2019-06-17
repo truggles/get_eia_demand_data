@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 # T. Ruggles
 # 14 June 2019
