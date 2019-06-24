@@ -73,6 +73,14 @@ def save_to_SEM_format(region_data, full_date_range):
 
 
         for time, demand in full_date_range_dict.items():
+            # Skip the first 5 hours of July 1st 2015 because they are empty for
+            # all regions
+            if time in [
+                    '20150701T00Z',
+                    '20150701T01Z',
+                    '20150701T02Z',
+                    '20150701T03Z',
+                    '20150701T04Z']: continue
             writer.writerow({'series_id': series_id, 'time': time, 'demand (MW)': demand})
 
 

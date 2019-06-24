@@ -43,3 +43,10 @@ an hour, the associated row will have a demand value of `MISSING`.
 In the cases where the result of the EIA API query returned NONE for
 an hour, the associated row will have a demand value of `EMPTY`.
 These values are kept distinct to help informe further study of the EIA data set.
+
+# Details
+
+The first 5 hours of July 1st 2015 are skipped in the output because that
+is when EIA data begins. The data must begin at a local time, because
+the West Coast regions still have three missing hours while East Coast
+regions have no missing at the beginning using this method.
