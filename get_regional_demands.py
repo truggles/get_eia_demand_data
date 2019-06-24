@@ -50,7 +50,7 @@ def generate_full_time_series(start_date, end_date):
 # Save region hourly electric demand data to a format usable by SEM
 def save_to_SEM_format(region_data, full_date_range):
 
-    series_id = region_data['request']['series_id']
+    series_id = region_data['request']['series_id'].replace('EBA.','').replace('-ALL.D.H','')
 
     with open('data/{}.csv'.format(series_id), 'w', newline='') as csvfile:
 
