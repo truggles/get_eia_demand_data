@@ -29,3 +29,17 @@ To generate a single csv file per EIA region with all EIA hourly demand run
 ```
 python get_regional_demands.py
 ```
+
+This will generate a host of csv files in the `data` folder, one for each region. 
+
+One can edit the start date and end date of the queried data by adjusting the `start_date`
+and `end_date` values in `get_regional_demands.py`.
+
+The resulting csv files will have a header row and a single row for each hour within
+the desired time range.
+
+In the cases where the result of the EIA API query skipped
+an hour, the associated row will have a demand value of `MISSING`.
+In the cases where the result of the EIA API query returned NONE for
+an hour, the associated row will have a demand value of `EMPTY`.
+These values are kept distinct to help informe further study of the EIA data set.
