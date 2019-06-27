@@ -19,6 +19,9 @@ EIA provides some commands here: https://www.eia.gov/opendata/commands.php
 
 Web interface for EIA electricity demand data: https://www.eia.gov/opendata/qb.php?category=2122628
 
+Web interface for EIA day-ahead forecasted electricity demand data: https://www.eia.gov/opendata/qb.php?category=2122627
+
+
 A real-time display of the U.S. interconnect is available here: https://www.eia.gov/realtime_grid/
 
 
