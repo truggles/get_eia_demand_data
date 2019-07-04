@@ -49,6 +49,19 @@ In the cases where the result of the EIA API query returned NONE for
 an hour, the associated row will have a demand value of `EMPTY`.
 These values are kept distinct to help informe further study of the EIA data set.
 
+
+# Creating New Regions
+
+One can use the file `combine_regional_files.py` to combine BAs into larger
+interconnection regions. If you run
+
+```
+python combine_regional_files.py
+```
+
+this will create 3 new files, EASTER, TEXAS, and WESTERN representing the 3
+main interconnects in CONUS.
+
 # Details
 
 The first 5 hours of July 1st 2015 are skipped in the output because that
