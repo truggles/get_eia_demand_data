@@ -33,6 +33,12 @@ def get_regional_data(series_id):
     region_query = urllib.request.urlopen('http://api.eia.gov/series/?api_key={}&series_id={}&format=json'.format(os.environ['EIA_API_KEY'], series_id))
     region_response = region_query.read().decode('utf-8')
     region_data = json.loads(region_response)
+
+    # For checking initial raw EIA output
+    #with open('data/{}_raw.csv'.format(series_id), 'w', newline='') as csvfile:
+    #    csvfile.write(json.dumps(region_data, sort_keys=True, indent=4))
+
+
     return region_data
 
 
