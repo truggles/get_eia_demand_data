@@ -70,7 +70,7 @@ def save_to_SEM_format(region_data, region_forecast_data, full_date_range):
 
     with open('data/{}.csv'.format(series_id), 'w', newline='') as csvfile:
 
-        fieldnames = ['series_id', 'time', 'demand (MW)', 'forecast demand (MW)']
+        fieldnames = ['series_id', 'time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -113,7 +113,10 @@ def save_to_SEM_format(region_data, region_forecast_data, full_date_range):
                     '20150701T02Z',
                     '20150701T03Z',
                     '20150701T04Z']: continue
-            writer.writerow({'series_id': series_id, 'time': time, 'demand (MW)': demand[0], 'forecast demand (MW)': demand[1]})
+            dt = datetime.datetime.strptime(time, '%Y%m%dT%HZ')
+            writer.writerow({'series_id': series_id, 'time': time, 
+                'year': dt.year, 'month': dt.month, 'day': dt.day, 'hour': dt.hour+1, # Hours are 1-24 in SEM
+                'demand (MW)': demand[0], 'forecast demand (MW)': demand[1]})
 
 
 
