@@ -6,6 +6,11 @@
 # Functions to combine demand csv files. This should happen
 # after data cleaning at the most granular scale so
 # corrections percolate upwards to larger regions.
+#
+# Additions 3 Sept 2019:
+# for studying the regions in SEM demand values must be positive.
+# For MISSING, EMPTY, and negative values, replace with zero
+# BEFORE aggregating.
 
 import json
 import csv
@@ -30,6 +35,7 @@ def combine_regions(regions, out_name):
             print("For new region {}, loading first region: {}".format(out_name, region))
             is_first = False
             master = return_csv_file(region)
+            zero_missing_and_empty(master)
             continue
 
         # Load subsequent regions
@@ -39,9 +45,10 @@ def combine_regions(regions, out_name):
         # Loop over all lines and add values to corresponding row
         # in master file
         for i in range(1, len(this_region)):
+
             # Check for errors in time alignment
             if master[i][0] != this_region[i][0]:
-                print("Error is file alignment in combine_regions for regions {} and {} line {}".format(regions[0], region, i))
+                print("Error in file alignment in combine_regions for regions {} and {} line {}".format(regions[0], region, i))
                 print(master[i], this_region[i])
                 break
 
@@ -64,14 +71,31 @@ def save_new_file(combined_data, out_name):
                     'demand (MW)': line[5], 'forecast demand (MW)': line[6]})
 
 
-# Add demand values and deal with MISSING and EMPTY cases
+# Set initial MISSING and EMPTY to zero in first file.
+# This is to deal with ERCO/TEXAS where there is no subsequent file added.
+def zero_missing_and_empty(info):
+    for i in range(1, len(info)):
+        if info[i][5] in ['MISSING', 'EMPTY']:
+            info[i][5] = 0
+        if info[i][6] in ['MISSING', 'EMPTY']:
+            info[i][6] = 0
+
+
+# Add demand values and deal with MISSING and EMPTY cases.
+# Also, zero out negative values before aggregating
 def add_values(val1, val2):
-    if val1 in ['MISSING', 'EMPTY'] and val2 not in ['MISSING', 'EMPTY']:
+    if val1 in ['MISSING', 'EMPTY'] and val2 not in ['MISSING', 'EMPTY'] and int(val2) >= 0:
         return int(val2)
-    if val2 in ['MISSING', 'EMPTY'] and val1 not in ['MISSING', 'EMPTY']:
+    if val2 in ['MISSING', 'EMPTY'] and val1 not in ['MISSING', 'EMPTY'] and int(val1) >= 0:
         return int(val1)
     if val1 in ['MISSING', 'EMPTY'] and val2 in ['MISSING', 'EMPTY']:
-        return val1
+        return 0
+    if int(val1) < 0 and int(val2) < 0:
+        return 0
+    if int(val1) < 0:
+        return int(val2)
+    if int(val2) < 0:
+        return int(val1)
     return int(val1) + int(val2)
 
 
