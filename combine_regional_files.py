@@ -30,10 +30,6 @@ def combine_regions(regions, out_name):
             print("For new region {}, loading first region: {}".format(out_name, region))
             is_first = False
             master = return_csv_file(region)
-            # Set series_id column to out_name
-            for line in master:
-                if line[0] == 'series_id': continue
-                line[0] = out_name
             continue
 
         # Load subsequent regions
@@ -44,13 +40,13 @@ def combine_regions(regions, out_name):
         # in master file
         for i in range(1, len(this_region)):
             # Check for errors in time alignment
-            if master[i][1] != this_region[i][1]:
+            if master[i][0] != this_region[i][0]:
                 print("Error is file alignment in combine_regions for regions {} and {} line {}".format(regions[0], region, i))
                 print(master[i], this_region[i])
                 break
 
-            master[i][2] = add_values(master[i][2], this_region[i][2])
-            master[i][3] = add_values(master[i][3], this_region[i][3])
+            master[i][5] = add_values(master[i][5], this_region[i][5])
+            master[i][6] = add_values(master[i][6], this_region[i][6])
 
     save_new_file(master, out_name)
     
@@ -58,13 +54,14 @@ def save_new_file(combined_data, out_name):
 
     with open('data/{}.csv'.format(out_name), 'w', newline='') as csvfile:
 
-        fieldnames = ['series_id', 'time', 'demand (MW)', 'forecast demand (MW)']
+        fieldnames = ['time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
         for line in combined_data:
-            if line[0] == 'series_id': continue
-            writer.writerow({'series_id': line[0], 'time': line[1], 'demand (MW)': line[2], 'forecast demand (MW)': line[3]})
+            if line[0] == 'time': continue
+            writer.writerow({'time': line[0], 'year': line[1], 'month': line[2], 'day': line[3], 'hour': line[4],
+                    'demand (MW)': line[5], 'forecast demand (MW)': line[6]})
 
 
 # Add demand values and deal with MISSING and EMPTY cases
@@ -83,8 +80,8 @@ if '__main__' in __name__:
     # this dictionary. They are the ones who are responsible for generation
     # only and do not report demand data to EIA. See the users guide (linked
     # from the README) for details.
-    REGIONS = {
-        'EASTERN' : [
+    ICs_from_BAs = {
+        'EASTERN_from_BAs' : [
                 'AEC', 'AECI', 'CPLE', 'CPLW', 
                 'DUK', 'FMPP', 'FPC', 
                 'FPL', 'GVL', 'HST', 'ISNE', 
@@ -94,11 +91,10 @@ if '__main__' in __name__:
                 'SPA', 'SWPP', 'TAL', 'TEC', 
                 'TVA', 
                 ],
-
-        'TEXAS' : [
+        'TEXAS_from_BAs' : [
                 'ERCO',
                 ],
-        'WESTERN' : [
+        'WESTERN_from_BAs' : [
                 'AVA', 'AZPS', 'BANC', 'BPAT', 
                 'CHPD', 'CISO', 'DOPD', 
                 'EPE', 'GCPD',
@@ -110,10 +106,24 @@ if '__main__' in __name__:
                 'WALC', 'WAUW',
                 ]
         }
+    # Medium regions already have EIA data cleaning and imputation applied
+    # and can provide a comparison against the more graunual SMALL_REGIONS
+    ICs_from_REGIONS = {
+        'EASTERN_from_REGIONS' : [
+            'CENT', 'MIDW', 'TEN', 'SE', 'FLA', 'CAR', 'MIDA', 'NY', 'NE'
+                ],
+        'TEXAS_from_REGIONS' : [
+                'TEX',
+                ],
+        'WESTERN_from_REGIONS' : [
+                'CAL', 'NW', 'SW'
+                ]
+        }
 
-    for IC, BAs in REGIONS.items():
+    for IC, regs in ICs_from_REGIONS.items():
+        combine_regions(regs, IC)
+
+    for IC, BAs in ICs_from_BAs.items():
         combine_regions(BAs, IC)
-
-
 
 
