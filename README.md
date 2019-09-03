@@ -62,6 +62,10 @@ python combine_regional_files.py
 this will create 3 new files, EASTER, TEXAS, and WESTERN representing the 3
 main interconnects in CONUS.
 
+An alternative US48 (CONUS) file is also created for comparisons. To check
+a really simple anomaly IDing and imputation method, one can run `./simple_mean_impute.py`
+to create versions of the BA files where the mean values have been imputed.
+
 # Details
 
 The first 5 hours of July 1st 2015 are skipped in the output because that

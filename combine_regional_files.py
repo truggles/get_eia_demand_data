@@ -25,10 +25,13 @@ def return_csv_file(region):
 
 # Combines csv files if they have the appropriate acronmy matching
 # a previously created file by get_regional_demands.py
-def combine_regions(regions, out_name):
+def combine_regions(regions, out_name, grab_mean_impute=False):
     
     is_first = True
     for region in regions:
+
+        if grab_mean_impute:
+            region = region+'_mean_impute'
 
         # Add subsequent to the first region
         if is_first:
@@ -55,6 +58,8 @@ def combine_regions(regions, out_name):
             master[i][5] = add_values(master[i][5], this_region[i][5])
             master[i][6] = add_values(master[i][6], this_region[i][6])
 
+    if grab_mean_impute:
+        out_name=out_name+'_mean_impute'
     save_new_file(master, out_name)
     
 def save_new_file(combined_data, out_name):
@@ -84,19 +89,19 @@ def zero_missing_and_empty(info):
 # Add demand values and deal with MISSING and EMPTY cases.
 # Also, zero out negative values before aggregating
 def add_values(val1, val2):
-    if val1 in ['MISSING', 'EMPTY'] and val2 not in ['MISSING', 'EMPTY'] and int(val2) >= 0:
-        return int(val2)
-    if val2 in ['MISSING', 'EMPTY'] and val1 not in ['MISSING', 'EMPTY'] and int(val1) >= 0:
-        return int(val1)
+    if val1 in ['MISSING', 'EMPTY'] and val2 not in ['MISSING', 'EMPTY'] and int(float(val2)) >= 0:
+        return int(float(val2))
+    if val2 in ['MISSING', 'EMPTY'] and val1 not in ['MISSING', 'EMPTY'] and int(float(val1)) >= 0:
+        return int(float(val1))
     if val1 in ['MISSING', 'EMPTY'] and val2 in ['MISSING', 'EMPTY']:
         return 0
-    if int(val1) < 0 and int(val2) < 0:
+    if int(float(val1)) < 0 and int(float(val2)) < 0:
         return 0
-    if int(val1) < 0:
-        return int(val2)
-    if int(val2) < 0:
-        return int(val1)
-    return int(val1) + int(val2)
+    if int(float(val1)) < 0:
+        return int(float(val2))
+    if int(float(val2)) < 0:
+        return int(float(val1))
+    return int(float(val1)) + int(float(val2))
 
 
 if '__main__' in __name__:
@@ -110,10 +115,11 @@ if '__main__' in __name__:
                 'DUK', 'FMPP', 'FPC', 
                 'FPL', 'GVL', 'HST', 'ISNE', 
                 'JEA', 'LGEE', 'MISO', 'NSB', 
-                'NYIS', 'OVEC', 'PJM', 'SC', 
-                'SCEG', 'SEC', 'SOCO', 
+                'NYIS', 'PJM', 'SC', 
+                'SCEG', 'SOCO', 
                 'SPA', 'SWPP', 'TAL', 'TEC', 
                 'TVA', 
+                # 'OVEC', 'SEC',
                 ],
         'TEXAS_from_BAs' : [
                 'ERCO',
@@ -128,6 +134,27 @@ if '__main__' in __name__:
                 'PSCO', 'PSEI', 'SCL', 'SRP', 
                 'TEPC', 'TIDC', 'TPWR', 'WACM', 
                 'WALC', 'WAUW',
+                ],
+        'CONUS_from_BAs' : [
+                'AEC', 'AECI', 'CPLE', 'CPLW', 
+                'DUK', 'FMPP', 'FPC', 
+                'FPL', 'GVL', 'HST', 'ISNE', 
+                'JEA', 'LGEE', 'MISO', 'NSB', 
+                'NYIS', 'PJM', 'SC', 
+                'SCEG', 'SOCO', 
+                'SPA', 'SWPP', 'TAL', 'TEC', 
+                'TVA', 
+                'ERCO',
+                'AVA', 'AZPS', 'BANC', 'BPAT', 
+                'CHPD', 'CISO', 'DOPD', 
+                'EPE', 'GCPD',
+                'IID', 
+                'IPCO', 'LDWP', 'NEVP', 'NWMT', 
+                'PACE', 'PACW', 'PGE', 'PNM', 
+                'PSCO', 'PSEI', 'SCL', 'SRP', 
+                'TEPC', 'TIDC', 'TPWR', 'WACM', 
+                'WALC', 'WAUW',
+                # 'OVEC', 'SEC',
                 ]
         }
     # Medium regions already have EIA data cleaning and imputation applied
@@ -141,6 +168,11 @@ if '__main__' in __name__:
                 ],
         'WESTERN_from_REGIONS' : [
                 'CAL', 'NW', 'SW'
+                ],
+        'CONUS_from_REGIONS' : [
+            'CENT', 'MIDW', 'TEN', 'SE', 'FLA', 'CAR', 'MIDA', 'NY', 'NE',
+                'TEX',
+                'CAL', 'NW', 'SW'
                 ]
         }
 
@@ -149,5 +181,10 @@ if '__main__' in __name__:
 
     for IC, BAs in ICs_from_BAs.items():
         combine_regions(BAs, IC)
+
+    # Must have first run simple_mean_impute.py
+    grab_mean_impute = True
+    for IC, BAs in ICs_from_BAs.items():
+        combine_regions(BAs, IC, grab_mean_impute)
 
 
