@@ -17,6 +17,8 @@ import os
 import datetime
 from collections import OrderedDict
 
+
+
 # Query EIA to get list of regions for which hourly electricity deman data is available
 def get_regions_data():
 
@@ -25,6 +27,19 @@ def get_regions_data():
     regions_data = json.loads(regions_response)
 
     return regions_data
+
+
+
+# EIA changed API mapping and now we need to be able to change between
+# category_id and series_id
+def category_id_to_series_id_demand(category_id):
+
+    region_query = urllib.request.urlopen('http://api.eia.gov/category/?api_key={}&category_id={}&format=json'.format(os.environ['EIA_API_KEY'], category_id))
+    region_response = region_query.read().decode('utf-8')
+    region_data = json.loads(region_response)
+
+    return region_data['category']['childseries'][0]['series_id']
+
 
 
 # Query EIA for hour electric demand data for a given region
@@ -38,8 +53,8 @@ def get_regional_data(series_id):
     #with open('data/{}_raw.csv'.format(series_id), 'w', newline='') as csvfile:
     #    csvfile.write(json.dumps(region_data, sort_keys=True, indent=4))
 
-
     return region_data
+
 
 
 # Query EIA for forecasted hourly electric demand data for a given region
@@ -49,6 +64,7 @@ def get_forecast_regional_data(series_id):
     region_query = urllib.request.urlopen('http://api.eia.gov/series/?api_key={}&series_id={}&format=json'.format(os.environ['EIA_API_KEY'], series_id.replace('-ALL.D.H','-ALL.DF.H')))
     region_response = region_query.read().decode('utf-8')
     region_data = json.loads(region_response)
+
     return region_data
 
 
@@ -64,13 +80,13 @@ def generate_full_time_series(start_date, end_date):
 
 
 # Save region hourly electric demand data to a format usable by SEM
-def save_to_SEM_format(region_data, region_forecast_data, full_date_range):
+def save_to_SEM_format(series_id, region_data, region_forecast_data, full_date_range):
 
-    series_id = region_data['request']['series_id'].replace('EBA.','').replace('-ALL.D.H','')
+    region_id = series_id.replace('EBA.','').replace('-ALL.D.H','')
 
-    with open('data/{}.csv'.format(series_id), 'w', newline='') as csvfile:
+    with open('data/{}.csv'.format(region_id), 'w', newline='') as csvfile:
 
-        fieldnames = ['series_id', 'time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
+        fieldnames = ['time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -89,7 +105,7 @@ def save_to_SEM_format(region_data, region_forecast_data, full_date_range):
                 else:
                     full_date_range_dict[demand[0]][0] = demand[1]
             except KeyError:
-                print("Check date and time formatting for series {} for time {}".format(series_id, demand[0]))
+                print("Check date and time formatting for category {} for time {}".format(region_id, demand[0]))
 
         # Day ahead forecasted demand
         for demand in region_forecast_data['series'][0]['data']:
@@ -102,7 +118,7 @@ def save_to_SEM_format(region_data, region_forecast_data, full_date_range):
                 else:
                     full_date_range_dict[demand[0]][1] = demand[1]
             except KeyError:
-                print("Check date and time formatting for forecast series {} for time {}".format(series_id, demand[0]))
+                print("Check date and time formatting for forecast category {} for time {}".format(region_id, demand[0]))
 
         for time, demand in full_date_range_dict.items():
             # Skip the first 5 hours of July 1st 2015 because they are empty for
@@ -114,7 +130,7 @@ def save_to_SEM_format(region_data, region_forecast_data, full_date_range):
                     '20150701T03Z',
                     '20150701T04Z']: continue
             dt = datetime.datetime.strptime(time, '%Y%m%dT%HZ')
-            writer.writerow({'series_id': series_id, 'time': time, 
+            writer.writerow({'time': time, 
                 'year': dt.year, 'month': dt.month, 'day': dt.day, 'hour': dt.hour+1, # Hours are 1-24 in SEM
                 'demand (MW)': demand[0], 'forecast demand (MW)': demand[1]})
 
@@ -127,16 +143,16 @@ if '__main__' in __name__:
 
     # Date range of interest
     start_date = datetime.date(2015, 7, 1) # EIA demand data starts in July of 2015
-    end_date = datetime.date(2019, 6, 1) # Can update this as time progresses
+    end_date = datetime.date(2019, 9, 1) # Can update this as time progresses
     full_date_range = generate_full_time_series(start_date, end_date)
 
-    
-    for region in regions_data['category']['childseries']:
+    for region in regions_data['category']['childcategories']:
 
-        print("Getting data for region: {} with series_id {}".format(region['name'], region['series_id']))
-        region_data = get_regional_data(region['series_id'])
-        region_forecast_data = get_forecast_regional_data(region['series_id'])
-        save_to_SEM_format(region_data, region_forecast_data, full_date_range)
+        series_id = category_id_to_series_id_demand(region['category_id'])
+        print("Getting data for region: {} with series_id {}".format(region['name'], series_id))
+        region_data = get_regional_data(series_id)
+        region_forecast_data = get_forecast_regional_data(series_id)
+        save_to_SEM_format(series_id, region_data, region_forecast_data, full_date_range)
 
 
 
