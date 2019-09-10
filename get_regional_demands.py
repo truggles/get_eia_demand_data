@@ -79,8 +79,8 @@ def generate_full_time_series(start_date, end_date):
     return full_date_range
 
 
-# Save region hourly electric demand data to a format usable by SEM
-def save_to_SEM_format(series_id, region_data, region_forecast_data, full_date_range):
+# Save region hourly electric demand data to a format usable by MEM
+def save_to_MEM_format(series_id, region_data, region_forecast_data, full_date_range):
 
     region_id = series_id.replace('EBA.','').replace('-ALL.D.H','')
 
@@ -130,8 +130,14 @@ def save_to_SEM_format(series_id, region_data, region_forecast_data, full_date_r
                     '20150701T03Z',
                     '20150701T04Z']: continue
             dt = datetime.datetime.strptime(time, '%Y%m%dT%HZ')
+            # From EIA form 930 instructions: 
+            # "Report all data as hourly integrated values in megawatts by hour ending time."
+            # Hours are reported as 1-24 in MEM. To align with this, we subtract 1 hour from UTC
+            # time so that 20150702T00Z, which is the EIA integrated value between July 1, 23:00
+            # and July 2 00:00 is reported as July 1, hour 24.
+            mem_format = dt + datetime.timedelta(hours=-1)
             writer.writerow({'time': time, 
-                'year': dt.year, 'month': dt.month, 'day': dt.day, 'hour': dt.hour+1, # Hours are 1-24 in SEM
+                'year': mem_format.year, 'month': mem_format.month, 'day': mem_format.day, 'hour': mem_format.hour+1,
                 'demand (MW)': demand[0], 'forecast demand (MW)': demand[1]})
 
 
@@ -152,7 +158,7 @@ if '__main__' in __name__:
         print("Getting data for region: {} with series_id {}".format(region['name'], series_id))
         region_data = get_regional_data(series_id)
         region_forecast_data = get_forecast_regional_data(series_id)
-        save_to_SEM_format(series_id, region_data, region_forecast_data, full_date_range)
+        save_to_MEM_format(series_id, region_data, region_forecast_data, full_date_range)
 
 
 
