@@ -14,11 +14,12 @@
 
 import json
 import csv
+import pandas as pd
 
 
 
 def return_csv_file(region):
-    with open("data/{}.csv".format(region), 'r') as f:
+    with open("data5/{}.csv".format(region), 'r') as f:
         info = list(csv.reader(f, delimiter=","))
     return info
 
@@ -27,8 +28,14 @@ def return_csv_file(region):
 # a previously created file by get_regional_demands.py
 def combine_regions(regions, out_name, grab_mean_impute=False):
     
+    usable_BAs = return_usable_BAs()
+
     is_first = True
     for region in regions:
+
+        if region not in usable_BAs:
+            print("BA {} is excluded because it is not included in return_usable_BAs()".format(region))
+            continue
 
         if grab_mean_impute:
             region = region+'_mean_impute'
@@ -64,7 +71,7 @@ def combine_regions(regions, out_name, grab_mean_impute=False):
     
 def save_new_file(combined_data, out_name):
 
-    with open('data/{}.csv'.format(out_name), 'w', newline='') as csvfile:
+    with open('data5/{}.csv'.format(out_name), 'w', newline='') as csvfile:
 
         fieldnames = ['time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -104,6 +111,86 @@ def add_values(val1, val2):
     return int(float(val1)) + int(float(val2))
 
 
+
+def return_BAs_per_region_map():
+    
+    regions = {
+            'CENT' : 'Central', 
+            'MIDW' : 'Midwest', 
+            'TEN' : 'Tennessee', 
+            'SE' : 'Southeast', 
+            'FLA' : 'Florida', 
+            'CAR' : 'Carolinas', 
+            'MIDA' : 'Mid-Atlantic', 
+            'NY' : 'New York', 
+            'NE' : 'New England',
+            'TEX' : 'Texas', 
+            'CAL' : 'California', 
+            'NW' : 'Northwest', 
+            'SW' : 'Southwest'
+    }
+
+    rtn_map = {}
+    for k, v in regions.items():
+        rtn_map[k] = []
+
+    # Load EIA's Blancing Authority Acronym table
+    # https://www.eia.gov/realtime_grid/
+    df = pd.read_csv('balancing_authority_acronyms.csv', 
+            skiprows=1) # skip first row as it is source info
+
+    # Loop over all rows and fill map
+    for idx in df.index:
+
+        # Skip Canada and Mexico
+        if df.loc[idx, 'Region'] in ['Canada', 'Mexico']:
+            continue
+
+        reg_acronym = ''
+        # Get region to acronym
+        for k, v in regions.items():
+            if v == df.loc[idx, 'Region']:
+                reg_acronym = k
+                break
+        assert(reg_acronym != '')
+
+        rtn_map[reg_acronym].append(df.loc[idx, 'Code'])
+        
+    tot = 0
+    print("\nBA to Region mapping:")
+    for k, v in rtn_map.items():
+        print(k, v)
+        tot += len(v)
+    print("\n\nTotal US48 BAs mapped {}.  Recall 10 are generation only.".format(tot))
+
+    return rtn_map
+
+
+
+def return_usable_BAs():
+    return [
+                'AEC', 'AECI', 'CPLE', 'CPLW', 
+                'DUK', 'FMPP', 'FPC', 
+                'FPL', 'GVL', 'HST', 'ISNE', 
+                'JEA', 'LGEE', 'MISO', 'NSB', 
+                'NYIS', 'PJM', 'SC', 
+                'SCEG', 'SOCO', 
+                'SPA', 'SWPP', 'TAL', 'TEC', 
+                'TVA', 
+                'ERCO',
+                'AVA', 'AZPS', 'BANC', 'BPAT', 
+                'CHPD', 'CISO', 'DOPD', 
+                'EPE', 'GCPD',
+                'IID', 
+                'IPCO', 'LDWP', 'NEVP', 'NWMT', 
+                'PACE', 'PACW', 'PGE', 'PNM', 
+                'PSCO', 'PSEI', 'SCL', 'SRP', 
+                'TEPC', 'TIDC', 'TPWR', 'WACM', 
+                'WALC', 'WAUW',
+                # 'OVEC', 'SEC',
+                ]
+
+
 if '__main__' in __name__:
     # There are 10 US BAs from the EIA database which are excluded from
     # this dictionary. They are the ones who are responsible for generation
@@ -135,27 +222,7 @@ if '__main__' in __name__:
                 'TEPC', 'TIDC', 'TPWR', 'WACM', 
                 'WALC', 'WAUW',
                 ],
-        'CONUS_from_BAs' : [
-                'AEC', 'AECI', 'CPLE', 'CPLW', 
-                'DUK', 'FMPP', 'FPC', 
-                'FPL', 'GVL', 'HST', 'ISNE', 
-                'JEA', 'LGEE', 'MISO', 'NSB', 
-                'NYIS', 'PJM', 'SC', 
-                'SCEG', 'SOCO', 
-                'SPA', 'SWPP', 'TAL', 'TEC', 
-                'TVA', 
-                'ERCO',
-                'AVA', 'AZPS', 'BANC', 'BPAT', 
-                'CHPD', 'CISO', 'DOPD', 
-                'EPE', 'GCPD',
-                'IID', 
-                'IPCO', 'LDWP', 'NEVP', 'NWMT', 
-                'PACE', 'PACW', 'PGE', 'PNM', 
-                'PSCO', 'PSEI', 'SCL', 'SRP', 
-                'TEPC', 'TIDC', 'TPWR', 'WACM', 
-                'WALC', 'WAUW',
-                # 'OVEC', 'SEC',
-                ]
+        'CONUS_from_BAs' : return_usable_BAs(),
         }
     # Medium regions already have EIA data cleaning and imputation applied
     # and can provide a comparison against the more graunual SMALL_REGIONS
@@ -176,15 +243,20 @@ if '__main__' in __name__:
                 ]
         }
 
-    for IC, regs in ICs_from_REGIONS.items():
-        combine_regions(regs, IC)
+    #for IC, regs in ICs_from_REGIONS.items():
+    #    combine_regions(regs, IC)
 
-    for IC, BAs in ICs_from_BAs.items():
-        combine_regions(BAs, IC)
+    #for IC, BAs in ICs_from_BAs.items():
+    #    combine_regions(BAs, IC)
 
-    # Must have first run simple_mean_impute.py
-    grab_mean_impute = True
-    for IC, BAs in ICs_from_BAs.items():
-        combine_regions(BAs, IC, grab_mean_impute)
+    ## Must have first run simple_mean_impute.py
+    #grab_mean_impute = True
+    #for IC, BAs in ICs_from_BAs.items():
+    #    combine_regions(BAs, IC, grab_mean_impute)
+
+    REGIONS_from_BAs = return_BAs_per_region_map()
+    for REGION, BAs in REGIONS_from_BAs.items():
+        print(REGION, BAs)
+        combine_regions(BAs, REGION)
 
 
