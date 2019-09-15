@@ -153,7 +153,7 @@ def return_BAs_per_region_map():
 
     # Load EIA's Blancing Authority Acronym table
     # https://www.eia.gov/realtime_grid/
-    df = pd.read_csv('balancing_authority_acronyms.csv', 
+    df = pd.read_csv('data/balancing_authority_acronyms.csv', 
             skiprows=1) # skip first row as it is source info
 
     # Loop over all rows and fill map
