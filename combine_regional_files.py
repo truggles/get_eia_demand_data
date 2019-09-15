@@ -19,14 +19,23 @@ import pandas as pd
 
 
 def return_csv_file(region):
-    with open("data5/{}.csv".format(region), 'r') as f:
+    with open("data5_out/{}.csv".format(region), 'r') as f:
         info = list(csv.reader(f, delimiter=","))
     return info
 
 
+def add_MICE_imputations_to_files(mice_file_path, region):
+    print("Adding MICE imputations to {}".format(region))
+    df_mice = pd.read_csv(mice_file_path)
+    df = pd.read_csv("data5/{}.csv".format(region))
+    df['cleaned demand (MW)'] = df_mice[region]
+    df.to_csv("data5_out/{}.csv".format(region), index=False, na_rep='NA')
+
+
+
 # Combines csv files if they have the appropriate acronmy matching
 # a previously created file by get_regional_demands.py
-def combine_regions(regions, out_name, grab_mean_impute=False):
+def combine_regions(regions, out_name, grab_mean_impute=False, grab_MICE=False):
     
     usable_BAs = return_usable_BAs()
 
@@ -64,23 +73,31 @@ def combine_regions(regions, out_name, grab_mean_impute=False):
 
             master[i][5] = add_values(master[i][5], this_region[i][5])
             master[i][6] = add_values(master[i][6], this_region[i][6])
+            if grab_MICE:
+                master[i][7] = add_values(master[i][7], this_region[i][7])
 
     if grab_mean_impute:
         out_name=out_name+'_mean_impute'
-    save_new_file(master, out_name)
+    save_new_file(master, out_name, grab_MICE)
     
-def save_new_file(combined_data, out_name):
+def save_new_file(combined_data, out_name, grab_MICE=False):
 
-    with open('data5/{}.csv'.format(out_name), 'w', newline='') as csvfile:
+    with open('data5_out/{}.csv'.format(out_name), 'w', newline='') as csvfile:
 
         fieldnames = ['time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
+        if grab_MICE:
+            fieldnames.append('cleaned demand (MW)')
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
         for line in combined_data:
             if line[0] == 'time': continue
-            writer.writerow({'time': line[0], 'year': line[1], 'month': line[2], 'day': line[3], 'hour': line[4],
-                    'demand (MW)': line[5], 'forecast demand (MW)': line[6]})
+            if not grab_MICE:
+                writer.writerow({'time': line[0], 'year': line[1], 'month': line[2], 'day': line[3], 'hour': line[4],
+                        'demand (MW)': line[5], 'forecast demand (MW)': line[6]})
+            else:
+                writer.writerow({'time': line[0], 'year': line[1], 'month': line[2], 'day': line[3], 'hour': line[4],
+                    'demand (MW)': line[5], 'forecast demand (MW)': line[6], 'cleaned demand (MW)': line[7]})
 
 
 # Set initial MISSING and EMPTY to zero in first file.
@@ -206,7 +223,7 @@ if '__main__' in __name__:
                 'SCEG', 'SOCO', 
                 'SPA', 'SWPP', 'TAL', 'TEC', 
                 'TVA', 
-                # 'OVEC', 'SEC',
+                'OVEC', 'SEC',
                 ],
         'TEXAS_from_BAs' : [
                 'ERCO',
@@ -243,20 +260,35 @@ if '__main__' in __name__:
                 ]
         }
 
-    #for IC, regs in ICs_from_REGIONS.items():
-    #    combine_regions(regs, IC)
 
-    #for IC, BAs in ICs_from_BAs.items():
-    #    combine_regions(BAs, IC)
+    for IC, regs in ICs_from_REGIONS.items():
+        combine_regions(regs, IC)
 
-    ## Must have first run simple_mean_impute.py
+
+    for IC, BAs in ICs_from_BAs.items():
+        combine_regions(BAs, IC)
+
+
+    # Must have first run simple_mean_impute.py
     #grab_mean_impute = True
     #for IC, BAs in ICs_from_BAs.items():
     #    combine_regions(BAs, IC, grab_mean_impute)
 
+
     REGIONS_from_BAs = return_BAs_per_region_map()
+    grab_mean_impute = False
+    grab_MICE = True # Get data from Dave's MICE runs
     for REGION, BAs in REGIONS_from_BAs.items():
         print(REGION, BAs)
-        combine_regions(BAs, REGION)
+        combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
+    combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
+
+
+    #----------------------------------------------------
+    # Add the imputed demand to the original csv files
+    #----------------------------------------------------
+    #usable_BAs = return_usable_BAs()
+    #for BA in usable_BAs:
+    #    add_MICE_imputations_to_files('~/Downloads/mean_impute_csv_MASTER_v12_2day_mice_Sept13.csv', BA)
 
 
