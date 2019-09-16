@@ -38,12 +38,13 @@ def add_MICE_imputations_to_files(mice_file_path, region):
 def combine_regions(regions, out_name, grab_mean_impute=False, grab_MICE=False):
     
     usable_BAs = return_usable_BAs()
+    usable_regions = return_usable_regions()
 
     is_first = True
     for region in regions:
 
-        if region not in usable_BAs:
-            print("BA {} is excluded because it is not included in return_usable_BAs()".format(region))
+        if region not in usable_BAs and region not in usable_regions:
+            print("BA/region {} is excluded because it is not included in return_usable_BAs() OR return_usable_regions()".format(region))
             continue
 
         if grab_mean_impute:
@@ -207,6 +208,25 @@ def return_usable_BAs():
                 # 'OVEC', 'SEC',
                 ]
 
+def return_usable_regions():
+    return [
+                'CENT', 'MIDW', 'TEN', 'SE', 'FLA', 'CAR', 'MIDA', 'NY', 'NE',
+                'TEX', 'CAL', 'NW', 'SW'
+                ]
+
+
+# For analysis copy the 'cleaned' colum over the normal 'demand' column and drop 'cleaned'.
+# Drop the first day of data which shows issues for some BAs.
+# Start all analysis on July 2, 2015.
+def prep_for_MEM(file_path):
+    print(f"prep_for_MEM: {file_path}")
+    df = pd.read_csv(file_path)
+    if 'cleaned demand (MW)' in df.columns:
+        df['demand (MW)'] = df['cleaned demand (MW)']
+    df = df.drop(['time','cleaned demand (MW)','forecast demand (MW)'], axis=1)
+    df = df.drop(df.index[[i for i in range(20)]]) # Start all analysis on July 2, 2015
+    df.to_csv(file_path.replace('.csv', '_for_MEM.csv'), index=False, na_rep='NA')
+
 
 if '__main__' in __name__:
     # There are 10 US BAs from the EIA database which are excluded from
@@ -261,12 +281,12 @@ if '__main__' in __name__:
         }
 
 
-    for IC, regs in ICs_from_REGIONS.items():
-        combine_regions(regs, IC)
+    #for IC, regs in ICs_from_REGIONS.items():
+    #    combine_regions(regs, IC)
 
 
-    for IC, BAs in ICs_from_BAs.items():
-        combine_regions(BAs, IC)
+    #for IC, BAs in ICs_from_BAs.items():
+    #    combine_regions(BAs, IC)
 
 
     # Must have first run simple_mean_impute.py
@@ -275,13 +295,13 @@ if '__main__' in __name__:
     #    combine_regions(BAs, IC, grab_mean_impute)
 
 
-    REGIONS_from_BAs = return_BAs_per_region_map()
-    grab_mean_impute = False
-    grab_MICE = True # Get data from Dave's MICE runs
-    for REGION, BAs in REGIONS_from_BAs.items():
-        print(REGION, BAs)
-        combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
-    combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
+    #REGIONS_from_BAs = return_BAs_per_region_map()
+    #grab_mean_impute = False
+    #grab_MICE = False # Get data from Dave's MICE runs
+    #for REGION, BAs in REGIONS_from_BAs.items():
+    #    print(REGION, BAs)
+    #    combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
+    #combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
 
 
     #----------------------------------------------------
@@ -291,4 +311,22 @@ if '__main__' in __name__:
     #for BA in usable_BAs:
     #    add_MICE_imputations_to_files('~/Downloads/mean_impute_csv_MASTER_v12_2day_mice_Sept13.csv', BA)
 
+
+    #REGIONS_from_BAs = return_BAs_per_region_map()
+    #grab_mean_impute = False
+    #grab_MICE = True # Get data from Dave's MICE runs
+    #combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
+
+    #for REGION, BAs in REGIONS_from_BAs.items():
+    #    print(REGION, BAs)
+    #    combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
+
+    #for IC, BAs in ICs_from_BAs.items():
+    #    combine_regions(BAs, IC, grab_mean_impute, grab_MICE)
+
+    for REG in ['EASTERN_from_BAs.csv',
+                'TEXAS_from_BAs.csv',
+                'WESTERN_from_BAs.csv',
+                'CONUS_from_BAs.csv']:
+        prep_for_MEM(f'data5_out/{REG}')
 
