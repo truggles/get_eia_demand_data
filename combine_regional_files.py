@@ -19,7 +19,7 @@ import pandas as pd
 
 
 def return_csv_file(region):
-    with open("data5_out/{}.csv".format(region), 'r') as f:
+    with open("data5_out2/{}.csv".format(region), 'r') as f:
         info = list(csv.reader(f, delimiter=","))
     return info
 
@@ -29,7 +29,7 @@ def add_MICE_imputations_to_files(mice_file_path, region):
     df_mice = pd.read_csv(mice_file_path)
     df = pd.read_csv("data5/{}.csv".format(region))
     df['cleaned demand (MW)'] = df_mice[region]
-    df.to_csv("data5_out/{}.csv".format(region), index=False, na_rep='NA')
+    df.to_csv("data5_out2/{}.csv".format(region), index=False, na_rep='NA')
 
 
 
@@ -83,7 +83,7 @@ def combine_regions(regions, out_name, grab_mean_impute=False, grab_MICE=False):
     
 def save_new_file(combined_data, out_name, grab_MICE=False):
 
-    with open('data5_out/{}.csv'.format(out_name), 'w', newline='') as csvfile:
+    with open('data5_out2/{}.csv'.format(out_name), 'w', newline='') as csvfile:
 
         fieldnames = ['time', 'year', 'month', 'day', 'hour', 'demand (MW)', 'forecast demand (MW)']
         if grab_MICE:
@@ -281,52 +281,64 @@ if '__main__' in __name__:
         }
 
 
-    #for IC, regs in ICs_from_REGIONS.items():
-    #    combine_regions(regs, IC)
+    # Can be used to combine and study initial data queried from EIA
+    do_raw_eia = False
+    if do_raw_eia:
+        for IC, regs in ICs_from_REGIONS.items():
+            combine_regions(regs, IC)
 
 
-    #for IC, BAs in ICs_from_BAs.items():
-    #    combine_regions(BAs, IC)
+        for IC, BAs in ICs_from_BAs.items():
+            combine_regions(BAs, IC)
 
 
+        REGIONS_from_BAs = return_BAs_per_region_map()
+        grab_mean_impute = False
+        grab_MICE = False # Get data from Dave's MICE runs
+        for REGION, BAs in REGIONS_from_BAs.items():
+            print(REGION, BAs)
+            combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
+        combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
+
+
+    # Use to create combinations using the simple anomaly IDing and simple imputations
     # Must have first run simple_mean_impute.py
-    #grab_mean_impute = True
-    #for IC, BAs in ICs_from_BAs.items():
-    #    combine_regions(BAs, IC, grab_mean_impute)
+    do_simple = False
+    if do_simple:
+        grab_mean_impute = True
+        for IC, BAs in ICs_from_BAs.items():
+            combine_regions(BAs, IC, grab_mean_impute)
 
 
-    #REGIONS_from_BAs = return_BAs_per_region_map()
-    #grab_mean_impute = False
-    #grab_MICE = False # Get data from Dave's MICE runs
-    #for REGION, BAs in REGIONS_from_BAs.items():
-    #    print(REGION, BAs)
-    #    combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
-    #combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
+
+    add_mice_imputations = True
+    if add_mice_imputations:
+        #----------------------------------------------------
+        # Add the imputed demand to the original csv files
+        #----------------------------------------------------
+        usable_BAs = return_usable_BAs()
+        for BA in usable_BAs:
+            #add_MICE_imputations_to_files('~/Downloads/mean_impute_csv_MASTER_v12_2day_mice_Sept13.csv', BA)
+            add_MICE_imputations_to_files('~/tmp_data4/csv_MASTER_XXX_v12_2day_mean_impute.csv', BA)
 
 
-    #----------------------------------------------------
-    # Add the imputed demand to the original csv files
-    #----------------------------------------------------
-    #usable_BAs = return_usable_BAs()
-    #for BA in usable_BAs:
-    #    add_MICE_imputations_to_files('~/Downloads/mean_impute_csv_MASTER_v12_2day_mice_Sept13.csv', BA)
+        REGIONS_from_BAs = return_BAs_per_region_map()
+        grab_mean_impute = False
+        grab_MICE = True # Get data from Dave's MICE runs
+        combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
 
+        for REGION, BAs in REGIONS_from_BAs.items():
+            print(REGION, BAs)
+            combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
 
-    #REGIONS_from_BAs = return_BAs_per_region_map()
-    #grab_mean_impute = False
-    #grab_MICE = True # Get data from Dave's MICE runs
-    #combine_regions(return_usable_BAs(), 'CONUS', grab_mean_impute, grab_MICE)
+        for IC, BAs in ICs_from_BAs.items():
+            combine_regions(BAs, IC, grab_mean_impute, grab_MICE)
 
-    #for REGION, BAs in REGIONS_from_BAs.items():
-    #    print(REGION, BAs)
-    #    combine_regions(BAs, REGION, grab_mean_impute, grab_MICE)
-
-    #for IC, BAs in ICs_from_BAs.items():
-    #    combine_regions(BAs, IC, grab_mean_impute, grab_MICE)
-
-    for REG in ['EASTERN_from_BAs.csv',
-                'TEXAS_from_BAs.csv',
-                'WESTERN_from_BAs.csv',
-                'CONUS_from_BAs.csv']:
-        prep_for_MEM(f'data5_out/{REG}')
+    prepare_for_MEM = True
+    if prepare_for_MEM:
+        for REG in ['EASTERN_from_BAs.csv',
+                    'TEXAS_from_BAs.csv',
+                    'WESTERN_from_BAs.csv',
+                    'CONUS_from_BAs.csv']:
+            prep_for_MEM(f'data5_out2/{REG}')
 
